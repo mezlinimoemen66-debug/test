@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin</title>
+<style>
+  body{font-family:system-ui,sans-serif;margin:0;background:#1f2937;color:#222}
+  main{max-width:460px;margin:60px auto;padding:28px;background:#fff;border-radius:12px}
+  input,textarea,button{width:100%;box-sizing:border-box;padding:10px;margin:6px 0 14px;font:inherit;border:1px solid #ccc;border-radius:8px}
+  button{background:#2563eb;color:#fff;border:0;cursor:pointer}
+  label{font-size:13px;color:#555} #msg{color:#0a7d4f;min-height:20px} .hide{display:none}
+</style>
+</head>
+<body>
+<main>
+  <h2>Admin</h2>
+
+  <div id="login">
+    <label id="loginHint"></label>
+    <input id="email" type="email" placeholder="Email">
+    <input id="pass" type="password" placeholder="Mot de passe">
+    <button onclick="login()">Se connecter</button>
+  </div>
+
+  <div id="panel" class="hide">
+    <label>Titre</label><input id="titre">
+    <label>Texte</label><textarea id="texte" rows="3"></textarea>
+    <label>Prix (DT)</label><input id="prix" type="number">
+    <button onclick="save()">Save</button>
+    <div id="msg"></div>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+// ===== Nafs el config mta3 index.html =====
+const FIREBASE_CONFIG = null;
+// ==========================================
+
+const DEF = { titre: "Marhba bik!", texte: "Hedha site test.", prix: 25 };
+const useFB = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey;
+const $ = id => document.getElementById(id);
+let db, auth;
+if (useFB) { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.firestore(); auth = firebase.auth(); }
+
+$("loginHint").textContent = useFB ? "Login Firebase" : "Mode demo: mot de passe = admin (email 5ali farigh)";
+
+async function load() {
+  let d = DEF;
+  if (useFB) { const s = await db.doc("site/accueil").get(); d = s.data() || DEF; }
+  else { try { d = JSON.parse(localStorage.getItem("site")) || DEF; } catch (e) {} }
+  $("titre").value = d.titre; $("texte").value = d.texte; $("prix").value = d.prix;
+}
+function show() { $("login").classList.add("hide"); $("panel").classList.remove("hide"); load(); }
+
+async function login() {
+  try {
+    if (useFB) await auth.signInWithEmailAndPassword($("email").value, $("pass").value);
+    else if ($("pass").value !== "admin") throw new Error("Mot de passe ghalet");
+    show();
+  } catch (e) { alert(e.message); }
+}
+
+async function save() {
+  const d = { titre: $("titre").value, texte: $("texte").value, prix: Number($("prix").value) };
+  try {
+    if (useFB) await db.doc("site/accueil").set(d);
+    else localStorage.setItem("site", JSON.stringify(d));
+    $("msg").textContent = "Tsajjel! Chouf el site public.";
+  } catch (e) { $("msg").textContent = "Erreur: " + e.message; }
+}
+if (useFB) auth.onAuthStateChanged(u => u && show());
+</script>
+</body>
+</html>
